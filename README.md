@@ -38,7 +38,7 @@ This plugin integrates the Casys payment gateway with your Medusa e-commerce sto
 
 ## Features
 
-- Seamless integration with Casys (Bankart) payment gateway
+- Seamless integration with Casys payment gateway
 - Automatic currency conversion to MKD (Macedonian Denar)
 - Handling of payment callbacks and redirects
 - Support for payment success and failure workflows

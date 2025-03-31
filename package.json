@@ -1,5 +1,5 @@
 {
-  "name": "@myorg/medusa-casys-plugin",
+  "name": "medusa-casys-plugin",
   "version": "0.0.1",
   "description": "A plugin for managing payments in Casys",
   "author": "Medusa (https://medusajs.com)",

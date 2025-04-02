@@ -1,15 +1,26 @@
 import { AbstractPaymentProvider, PaymentSessionStatus } from "@medusajs/framework/utils"
 import {
-    CreatePaymentProviderSession,
-    PaymentProviderError,
-    PaymentProviderSessionResponse,
     ProviderWebhookPayload,
-    UpdatePaymentProviderSession,
     WebhookActionResult,
+    AuthorizePaymentInput,
+    AuthorizePaymentOutput,
+    CapturePaymentInput,
+    CapturePaymentOutput,
+    CancelPaymentInput,
+    CancelPaymentOutput,
+    InitiatePaymentInput,
+    InitiatePaymentOutput,
+    DeletePaymentInput,
+    DeletePaymentOutput,
+    GetPaymentStatusInput,
+    GetPaymentStatusOutput,
+    RefundPaymentInput,
+    RefundPaymentOutput,
+    RetrievePaymentInput,
+    RetrievePaymentOutput,
+    UpdatePaymentInput,
+    UpdatePaymentOutput,
 } from "@medusajs/framework/types"
-
-import { MedusaContainer } from "@medusajs/medusa"
-import { Modules } from "@medusajs/framework/utils"
 
 
 type Options = {
@@ -51,19 +62,29 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
 
     private cartData: Record<string, unknown> | null = null;
 
-    capturePayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
-        return Promise.resolve({
-            status: "captured",
-            captured_at: new Date().toISOString()
-        })
+    async capturePayment(
+        input: CapturePaymentInput
+    ): Promise<CapturePaymentOutput> {
+        return {
+            data: {
+                status: "captured",
+                captured_at: new Date().toISOString(),
+            }
+        }
     }
 
 
-    async authorizePayment(paymentSessionData: Record<string, unknown>, context: Record<string, unknown>): Promise<PaymentProviderError | { status: PaymentSessionStatus; data: PaymentProviderSessionResponse["data"] }> {
+    async authorizePayment(
+        input: AuthorizePaymentInput
+    ): Promise<AuthorizePaymentOutput> {
+        if (!input.data) {
+            throw new Error("No input data");
+        }
 
-        const sess = await this.paymentSessionService.retrieve(paymentSessionData['id'])
+        const sess = await this.paymentSessionService.retrieve(input.data['id'])
 
-        let mkdAmount: number | null = null;
+
+        let mkdAmount: number;
         const conversionRates = {
             "eur": 61.5,
             "usd": 56,
@@ -78,10 +99,10 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
         }
 
         const body = {
-            AmountToPay: mkdAmount!.toFixed(0),
+            AmountToPay: mkdAmount.toFixed(0),
             AmountCurrency: "MKD",
             Details1: `Order Payment, ${this.options_.paymentOkUrl}, ${this.options_.paymentFailUrl}`,
-            Details2: context.cart_id,
+            Details2: sess.context.cart.id,
             PayToMerchant: this.options_.merchantId,
             MerchantName: this.options_.merchantName,
             PaymentOKURL: `${this.options_.backendUrl}/api/casys/success`,
@@ -127,7 +148,8 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
         const checksum = crypto.createHash("md5").update(inputString, "utf8").digest("hex");
 
         await this.paymentSessionService.update({
-            id: paymentSessionData['id'], data: {
+            id: input.data['id'],
+            data: {
                 header,
                 body,
                 checksum
@@ -135,7 +157,7 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
         })
 
         return {
-            status: PaymentSessionStatus.AUTHORIZED,
+            status: "authorized",
             data: {
                 header,
                 body,
@@ -144,69 +166,81 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
         };
     }
 
-    cancelPayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
-        throw new Error("Method not implemented.")
-    }
-    deletePayment(paymentSessionData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
-        return Promise.resolve({
-            status: "deleted",
-            deleted_at: new Date().toISOString(),
-        })
-    }
-    getPaymentStatus(paymentSessionData: Record<string, unknown>): Promise<PaymentSessionStatus> {
-        throw new Error("Method not implemented.")
-    }
-    refundPayment(paymentData: Record<string, unknown>, refundAmount: number): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
-        throw new Error("Method not implemented.")
-    }
-    retrievePayment(paymentSessionData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
-        throw new Error("Method not implemented.")
-    }
-    getWebhookActionAndData(data: ProviderWebhookPayload["payload"]): Promise<WebhookActionResult> {
-        throw new Error("Method not implemented.")
-    }
-
-    async initiatePayment(
-        input: CreatePaymentProviderSession
-    ): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
-
-        const { email, extra, session_id, customer } = input.context
-        const { currency_code, amount } = input;
-
-        this.cartData = input.context
-
-
-        try {
-            const response = await this.client.init(
-                amount, currency_code, customer
-            )
-
-
-            return {
-                ...response,
-                data: {
-                    id: session_id
-                }
-            }
-        } catch (e) {
-            return {
-                error: e,
-                code: "unknown",
-                detail: e
+    async cancelPayment(
+        input: CancelPaymentInput
+    ): Promise<CancelPaymentOutput> {
+        return {
+            data: {
+                status: "cancelled",
+                cancelled_at: new Date().toISOString(),
             }
         }
     }
 
-    async updatePayment(
-        context: UpdatePaymentProviderSession
-    ): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
+    async initiatePayment(
+        input: InitiatePaymentInput
+    ): Promise<InitiatePaymentOutput> {
         const {
             amount,
             currency_code,
-            context: customerDetails,
-            data
-        } = context
-        const externalId = data.id
+            context: customerDetails
+        } = input
+
+        try {
+            const response = await this.client.init(
+                amount,
+                currency_code,
+                customerDetails
+            )
+
+            this.cartData = customerDetails ?? null
+
+            return {
+                id: response.id,
+                data: {
+                    id: response.id,
+                    status: "pending"
+                }
+            }
+        } catch (e) {
+            throw new Error(`Failed to initiate payment: ${e.message}`)
+        }
+    }
+
+    async deletePayment(
+        input: DeletePaymentInput
+    ): Promise<DeletePaymentOutput> {
+        return {}
+    }
+
+    async getPaymentStatus(
+        input: GetPaymentStatusInput
+    ): Promise<GetPaymentStatusOutput> {
+        return {
+            status: "authorized"
+        }
+    }
+
+    async refundPayment(
+        input: RefundPaymentInput
+    ): Promise<RefundPaymentOutput> {
+        throw new Error("Method not implemented.")
+    }
+
+    async retrievePayment(
+        input: RetrievePaymentInput
+    ): Promise<RetrievePaymentOutput> {
+        throw new Error("Method not implemented.")
+    }
+
+    async updatePayment(
+        input: UpdatePaymentInput
+    ): Promise<UpdatePaymentOutput> {
+        const { amount, currency_code, context } = input
+        const externalId = input.data?.id
+
+        if (!context) { throw new Error("Context undefined.") }
+
 
         try {
             const response = await this.client.update(
@@ -214,23 +248,30 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
                 {
                     amount,
                     currency_code,
-                    customerDetails
+                    customer: context.customer
                 }
             )
 
             return {
-                ...response,
                 data: {
-                    id: response.id
+                    id: response.id,
+                    status: "updated"
                 }
             }
         } catch (e) {
-            return {
-                error: e,
-                code: "unknown",
-                detail: e
-            }
+            throw new Error(`Failed to update payment: ${e.message}`)
         }
+    }
+
+    async getWebhookActionAndData(
+        payload: ProviderWebhookPayload["payload"]
+    ): Promise<WebhookActionResult> {
+        const {
+            data,
+            rawData,
+            headers
+        } = payload
+        throw new Error("Method not implemented.")
     }
 
 

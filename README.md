@@ -50,14 +50,14 @@ This plugin is compatible with versions >= 2.4.0 of `@medusajs/medusa`.
 ## Prerequisites
 
 - Medusa server (v2.4.0 or later)
-- Casys (Bankart) merchant account credentials
+- Casys merchant account credentials
 
 ## Installation
 
 ```bash
-npm install @myorg/medusa-casys-plugin
+npm install medusa-casys-plugin
 # or
-yarn add @myorg/medusa-casys-plugin
+yarn add medusa-casys-plugin
 ```
 
 ## Configuration
@@ -65,20 +65,34 @@ yarn add @myorg/medusa-casys-plugin
 Add the plugin to your `medusa-config.js` file:
 
 ```javascript
-const plugins = [
-  // ... other plugins
-  {
-    resolve: "@myorg/medusa-casys-plugin",
-    options: {
-      merchantName: "Your Merchant Name",
-      merchantId: "your-merchant-id",
-      checkSumKey: "your-checksum-key",
-      paymentOkUrl: "https://your-store.com/payment-success",
-      paymentFailUrl: "https://your-store.com/payment-failure",
-      backendUrl: "https://your-backend.com",
+module.exports = defineConfig({
+  plugins: [
+    {
+      resolve: `medusa-casys-plugin`,
     },
-  },
-];
+  ],
+  modules: [
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            resolve: "medusa-casys-plugin/providers/casys-payment",
+            id: "casys_payment_provider",
+            options: {
+              merchantName: "Your Merchant Name",
+              merchantId: "your-merchant-id",
+              checkSumKey: "your-checksum-key",
+              paymentOkUrl: "https://your-store.com/payment-success",
+              paymentFailUrl: "https://your-store.com/payment-failure",
+              backendUrl: "https://your-backend.com",
+            },
+          },
+        ],
+      },
+    },
+  ],
+});
 ```
 
 ### Required Options
@@ -118,7 +132,7 @@ The plugin creates the following API endpoints:
 
 ## About Casys
 
-Casys (via Bankart gateway) is a payment processing service allowing businesses to accept payments online. The gateway is accessible at https://gateway.bankart.si.
+Casys is a payment processing service allowing businesses to accept payments online.
 
 ## What is Medusa
 

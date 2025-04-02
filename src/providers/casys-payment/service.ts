@@ -28,6 +28,7 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
     capturePayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
         return Promise.resolve({
             status: "captured",
+            captured_at: new Date().toISOString()
         })
     }
 
@@ -123,6 +124,7 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
     deletePayment(paymentSessionData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
         return Promise.resolve({
             status: "deleted",
+            deleted_at: new Date().toISOString(),
         })
     }
     getPaymentStatus(paymentSessionData: Record<string, unknown>): Promise<PaymentSessionStatus> {

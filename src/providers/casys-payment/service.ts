@@ -26,7 +26,9 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
     private cartData: Record<string, unknown> | null = null;
 
     capturePayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
-        throw new Error("Method not implemented.")
+        return Promise.resolve({
+            status: "captured",
+        })
     }
 
 

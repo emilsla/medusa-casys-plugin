@@ -23,6 +23,32 @@ type Options = {
 
 class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
 
+    static identifier = "casys_payment_provider";
+    casysUrl = "https://gateway.bankart.si";
+    protected client: any;
+    protected paymentSessionService: any;
+    protected orderService: any;
+
+
+    protected options_: Options;
+
+    constructor(container, options: Options) {
+        super(container, options);
+
+        this.options_ = options || {};
+
+        this.paymentSessionService = container.paymentSessionService;
+        this.client = {
+            init: async (amount, currency_code, customerDetails, sessionId) => {
+                return {
+                    id: sessionId
+                }
+            },
+            update: async (externalId, data) => {
+            }
+        };
+    }
+
     private cartData: Record<string, unknown> | null = null;
 
     capturePayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
@@ -138,32 +164,6 @@ class CasysPaymentProviderService extends AbstractPaymentProvider<Options> {
     }
     getWebhookActionAndData(data: ProviderWebhookPayload["payload"]): Promise<WebhookActionResult> {
         throw new Error("Method not implemented.")
-    }
-
-    static identifier = "casys_payment_provider";
-    casysUrl = "https://gateway.bankart.si";
-    protected client: any;
-    protected paymentSessionService: any;
-    protected orderService: any;
-
-
-    protected options_: Options;
-
-    constructor(container, options: Options) {
-        super(container, options);
-
-        this.options_ = options || {};
-
-        this.paymentSessionService = container.paymentSessionService;
-        this.client = {
-            init: async (amount, currency_code, customerDetails, sessionId) => {
-                return {
-                    id: sessionId
-                }
-            },
-            update: async (externalId, data) => {
-            }
-        };
     }
 
     async initiatePayment(

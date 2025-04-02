@@ -69,6 +69,7 @@ module.exports = defineConfig({
   plugins: [
     {
       resolve: `medusa-casys-plugin`,
+      options: {},
     },
   ],
   modules: [
